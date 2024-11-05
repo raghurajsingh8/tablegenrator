@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Inventory Form</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<form name="submit-to-google-sheet">
+    <label>Total Purchase Quantity:</label>
+    <input type="number" id="total-purchase" name="total_purchase" min="1" required>
+
+    <br><br>
+    <!-- Common Fields -->
+    <label>Entry Time & Date:</label>
+    <input type="datetime-local" id="entry-time-date" name="entry_time_date" required>
+
+    <br><br>
+
+    <label>Product Name:</label>
+    <input type="text" id="product-name" name="product_name" required>
+
+    <br><br>
+
+    <label>Product Version:</label>
+    <input type="text" id="product-version" name="product_version" required>
+
+    <br><br>
+
+    <!-- Table for Serial Numbers and Sale Details -->
+    <div id="dynamic-table"></div>
+
+    <button type="submit">Submit</button>
+</form>
+
+<script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwq1yR7cqRgWKpuy-PyjdUbBXNsO0ryZJAgwQBLCzs3hY1IA3XNoohAOS3C_as3KdIF/exec'
+    const form = document.forms['submit-to-google-sheet'];
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        const formData = new FormData(form);
+
+        // Collect dynamic table data into FormData
+        $('#dynamic-table input').each(function() {
+            formData.append(this.name, this.value);
+        });
+
+        fetch(scriptURL, { method: 'POST', body: formData })
+            .then(response => console.log('Success!', response))
+            .catch(error => console.error('Error!', error.message));
+    });
+
+    // Function to create a dynamic table based on Total Purchase Quantity
+    $('#total-purchase').on('change', function() {
+        let purchaseQuantity = parseInt($(this).val());
+        let entryDate = $('#entry-time-date').val();
+        let productName = $('#product-name').val();
+        let productVersion = $('#product-version').val();
+
+        // Generate the table structure
+        let tableHTML = `<table>
+            <tr>
+                <th>Serial Number (Purchase)</th>
+                <th>Entry Time & Date</th>
+                <th>Serial Number (Sale)</th>
+                <th>Sale Quantity</th>
+                <th>Out Time & Date</th>
+                <th>Sale Name</th>
+                <th>Scan By</th>
+                <th>Product Name</th>
+                <th>Product Version</th>
+            </tr>`;
+
+        for (let i = 0; i < purchaseQuantity; i++) {
+            tableHTML += `<tr>
+                <td><input type="text" name="serial_number_purchase[]" placeholder="Serial Number (Purchase) ${i + 1}" required></td>
+                <td><input type="datetime-local" name="entry_time_date[]" value="${entryDate}" disabled></td>
+                <td><input type="text" name="serial_number_sale[]" placeholder="Serial Number (Sale) ${i + 1}" required></td>
+                <td><input type="number" name="sale_quantity[]" min="1" required></td>
+                <td><input type="datetime-local" name="out_time_date[]" required></td>
+                <td><input type="text" name="sale_name[]" required></td>
+                <td><input type="text" name="scan_by[]" required></td>
+                <td><input type="text" name="product_name[]" value="${productName}" disabled></td>
+                <td><input type="text" name="product_version[]" value="${productVersion}" disabled></td>
+            </tr>`;
+        }
+        tableHTML += `</table>`;
+
+        $('#dynamic-table').html(tableHTML);
+    });
+
+    // Auto-fill common fields across all rows
+    $('#entry-time-date').on('change', function() {
+        let entryDate = $(this).val();
+        $('input[name^="entry_time_date"]').val(entryDate);
+    });
+
+    $('#product-name').on('input', function() {
+        let productName = $(this).val();
+        $('input[name^="product_name"]').val(productName);
+    });
+
+    $('#product-version').on('input', function() {
+        let productVersion = $(this).val();
+        $('input[name^="product_version"]').val(productVersion);
+    });
+</script>
+
+</body>
+</html>
